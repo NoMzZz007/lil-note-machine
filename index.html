@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>the little note machine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#d9f2e6; --ink:#14352c; --body:#fff; --tomato:#ff6b4a; --slot:#14352c; --paper:#fffdf3; --sweet:#ff9bb3; --joke:#ffd35c; --comp:#9bd8ff; --muted:#4f7468;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#0f2a24; --ink:#e6fff5; --body:#1a3d34; --tomato:#ff8466; --slot:#06140f; --paper:#fff8e1; --muted:#9cc7b9;}
+}
+:root[data-theme="dark"]{--bg:#0f2a24; --ink:#e6fff5; --body:#1a3d34; --tomato:#ff8466; --slot:#06140f; --paper:#fff8e1; --muted:#9cc7b9;}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:'Fredoka',system-ui,sans-serif;display:flex;justify-content:center;padding:28px 18px 56px}
+main{width:100%;max-width:400px;text-align:center}
+h1{font-weight:600;font-size:1.9rem;margin:0 0 4px}
+.sub{margin:0 0 22px;color:var(--muted)}
+.filters{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+.f{font:inherit;font-weight:500;font-size:.9rem;background:transparent;color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer}
+.f[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.machine{background:var(--body);border:3px solid var(--ink);border-radius:30px;padding:26px 22px 22px;box-shadow:0 8px 0 var(--ink)}
+.go{font:inherit;font-weight:600;font-size:1.25rem;width:100%;background:var(--tomato);color:#fff;border:3px solid var(--ink);border-radius:20px;padding:16px;cursor:pointer;box-shadow:0 6px 0 var(--ink);transition:transform .1s,box-shadow .1s}
+.go:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+.slot{height:14px;background:var(--slot);border-radius:8px;margin:24px 6px 0}
+.tray{height:190px;overflow:hidden;position:relative;margin:0 14px}
+.slip{position:absolute;left:0;right:0;top:0;background:var(--paper);color:#14352c;border:2px solid #14352c;border-top:0;border-radius:0 0 14px 14px;padding:18px 16px 20px;text-align:left;transform:translateY(-110%)}
+.slip.out{animation:drop .55s cubic-bezier(.2,.9,.3,1.2) forwards}
+@keyframes drop{to{transform:translateY(0)}}
+.tag{display:inline-block;font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px;margin-bottom:8px;color:#14352c}
+.tag.sweet{background:var(--sweet)}.tag.joke{background:var(--joke)}.tag.comp{background:var(--comp)}
+.slip p{margin:0;font-size:1.2rem;line-height:1.4;font-weight:500}
+.sign{margin-top:8px;font-size:.9rem;opacity:.7}
+.empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:1rem}
+.count{margin-top:18px;color:var(--muted);font-size:.9rem}
+button:focus-visible{outline:3px solid var(--joke);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){.slip.out{animation:none;transform:none}.go{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>the little note machine</h1>
+  <p class="sub">press the button. a note comes out.</p>
+
+  <div class="filters" id="filters" role="group" aria-label="Kind of note"></div>
+
+  <div class="machine">
+    <button class="go" id="go">give me one</button>
+    <div class="slot" aria-hidden="true"></div>
+    <div class="tray" id="tray" aria-live="polite">
+      <div class="empty" id="empty">your note lands here</div>
+    </div>
+  </div>
+  <p class="count" id="count"></p>
+</main>
+
+<script>
+const ME = "nom";
+const NOTES = [
+  ["sweet","You’re the first person I want to tell good news to."],
+  ["sweet","My favorite part of today is thinking about you."],
+  ["sweet","I like who I am when I’m with you."],
+  ["sweet","Holding your hand is my favorite kind of quiet."],
+  ["sweet","You make ordinary days feel like little holidays."],
+  ["sweet","No rush, no pressure. I’m happy right here next to you."],
+  ["sweet","If today is heavy, I’ll be someone you can lean on."],
+  ["sweet","You never have to be okay for me. Just be you."],
+  ["sweet","I’m so glad it’s you."],
+  ["sweet","Thinking of you. That’s the whole message."],
+  ["joke","I’d tell you a chemistry joke, but I wouldn’t get a reaction."],
+  ["joke","Are you a magnet? Because I keep getting pulled toward you."],
+  ["joke","Are you Wi-Fi? I’m feeling a strong connection."],
+  ["joke","I’m not a photographer, but I can picture us together."],
+  ["joke","Fun fact: you’re my favorite notification."],
+  ["joke","My heart skips a beat when your name pops up. Cardiology says it’s fine."],
+  ["joke","You’re like a campfire: warm, cozy, and I want s’more."],
+  ["joke","Are you a dictionary? You add meaning to my life."],
+  ["comp","Your laugh is a top-tier sound. 10/10 would listen to it again."],
+  ["comp","You have a way of making me feel comfortable and safe."],
+  ["comp","You make people feel seen. It’s a real gift."],
+  ["comp","You’re so much stronger and braver than you give yourself credit for."],
+  ["comp","You have excellent taste. Obviously, cuz you picked me."],
+  ["comp","Your kindness isn’t small. It changes the whole room."],
+  ["comp","The way you care about things is so attractive."],
+  ["comp","You look good doing literally anything."],
+  ["comp","You’re allowed to rest. You’re still doing great."],
+];
+const KINDS = [["all","everything"],["sweet","sweet"],["joke","jokes"],["comp","compliments"]];
+const LABEL = {sweet:"sweet", joke:"joke", comp:"compliment"};
+
+const $ = id => document.getElementById(id);
+let kind = "all", bag = [], last = null, given = 0;
+
+function refill(){
+  bag = NOTES.filter(n => kind === "all" || n[0] === kind);
+  for (let i = bag.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+  if (bag.length > 1 && bag[bag.length - 1] === last) bag.unshift(bag.pop());
+}
+KINDS.forEach(([k, label]) => {
+  const b = document.createElement('button');
+  b.className = 'f'; b.textContent = label; b.setAttribute('aria-pressed', String(k === kind));
+  b.onclick = () => { kind = k; refill(); document.querySelectorAll('.f').forEach(x => x.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); };
+  $('filters').appendChild(b);
+});
+refill();
+
+$('go').onclick = () => {
+  if (!bag.length) refill();
+  last = bag.pop();
+  const [k, text] = last;
+  given++;
+  $('empty').style.display = 'none';
+  const tray = $('tray');
+  tray.querySelectorAll('.slip').forEach(s => s.remove());
+  const slip = document.createElement('div');
+  slip.className = 'slip';
+  slip.innerHTML = '<span class="tag ' + k + '"></span><p></p><div class="sign"></div>';
+  slip.querySelector('.tag').textContent = LABEL[k];
+  slip.querySelector('p').textContent = text;
+  slip.querySelector('.sign').textContent = '— ' + ME;
+  tray.appendChild(slip);
+  void slip.offsetWidth; slip.classList.add('out');
+  $('count').textContent = given === 1 ? '1 note so far' : given + ' notes so far';
+};
+</script>
+</body>
+</html>
